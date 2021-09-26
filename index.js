@@ -15,8 +15,8 @@ const ImageDataURI = require('image-data-uri');
 let basePath = process.cwd() + '/images/';
 let outputPath = process.cwd() + '/output/';
 let traits;
-let traitsToSort = [];
 let order = [];
+let traitProbability = {};
 let weights = {};
 let names = {};
 let weightedTraits = [];
@@ -57,17 +57,18 @@ async function main() {
   loadingDirectories.color = 'yellow';
   loadingDirectories.start();
   traits = getDirectories(basePath);
-  traitsToSort = [...traits];
   await sleep(2);
   loadingDirectories.succeed();
   loadingDirectories.clear();
   await traitsOrder();
+  await setTraitProbability();
   await asyncForEach(traits, async trait => {
     await setNames(trait);
   });
   await asyncForEach(traits, async trait => {
     await setWeights(trait);
   });
+
   const generatingImages = ora('Generating images');
   generatingImages.color = 'yellow';
   generatingImages.start();
@@ -75,6 +76,7 @@ async function main() {
   await sleep(2);
   generatingImages.succeed('All images generated!');
   generatingImages.clear();
+
   if (config.generateMetadata) {
     const writingMetadata = ora('Exporting metadata');
     writingMetadata.color = 'yellow';
@@ -96,10 +98,32 @@ async function main() {
 
 //SELECT THE ORDER IN WHICH THE TRAITS SHOULD BE COMPOSITED
 async function traitsOrder() {
-  traitsToSort.forEach(trait => {
+  traits.forEach(trait => {
     const globalIndex = traits.indexOf(trait);
     order.push(globalIndex);
   });
+}
+
+//SET PROBABILITY FOR EVERY TRAIT
+async function setTraitProbability() {
+  if (config.traitProbability && Object.keys(config.traitProbability).length === Object.keys(traits).length ) {
+    traitProbability = config.traitProbability;
+    return;
+  }
+  const probabilityPrompt = [];
+  traits.forEach(trait => {
+    probabilityPrompt.push({
+      type: 'input',
+      name: trait + '_probability',
+      message: trait + ' probability(%)?',
+      default: 100,
+    });
+  });
+  const selectedProbability = await inquirer.prompt(probabilityPrompt);
+  traits.forEach(trait => {
+    traitProbability[trait] = selectedProbability[trait + '_probability']
+  });
+  config.traitProbability = traitProbability;
 }
 
 //SET NAMES FOR EVERY TRAIT
@@ -122,7 +146,7 @@ async function setWeights(trait) {
     weightPrompt.push({
       type: 'input',
       name: names[file] + '_weight',
-      message: 'How many ' + names[file] + ' ' + trait + ' should there be?',
+      message: names[file].split('_')[1] + ' (' + trait + ') total?',
       default: parseInt(Math.round(10000 / files.length)),
     });
   });
@@ -162,11 +186,14 @@ async function generateImages() {
   await generateWeightedTraits();
 
   while (weightedTraits[0].length > 0 && noMoreMatches < 20000) {
+    console.log(weightedTraits[0].length)
+
     let picked = [];
     order.forEach(id => {
       let pickedImgId = pickRandom(weightedTraits[id]);
       picked.push(pickedImgId);
       let pickedImg = weightedTraits[id][pickedImgId];
+      console.log(pickedImg)
       images.push(basePath + traits[id] + '/' + pickedImg);
     });
 
@@ -224,8 +251,8 @@ function generateMetadataObject(id, images) {
     let pathArray = image.split('/');
     let fileToMap = pathArray[pathArray.length - 1];
     metaData[id].attributes.push({
-      trait_type: traits[order[i]],
-      value: names[fileToMap],
+      trait_type: traits[order[i]].split('_')[1],
+      value: names[fileToMap].split('_')[1],
     });
   });
 }
