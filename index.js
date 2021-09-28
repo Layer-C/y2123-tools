@@ -25,9 +25,30 @@ let metaData = {};
 let config = {
   metaData: {
     name: 'Y2123',
-    description: 'Character ID for the future city',
+    symbol: 'Y2123',
+    description: 'Character ID for Y2123 Metaverse',
+    seller_fee_basis_points: 2.123,
+    animation_url: '',
+    external_url: 'https://y2123.com',
+    collection: {
+      name: 'Y2123 Metaverse',
+      family: 'Character ID'
+    },
+    properties: {
+      files: [
+        {
+          type: 'image/png'
+        }
+      ],
+      category: 'image',
+      creators: [
+        {
+          address: 'D7tFhr7zkuUjqxZd8iCzbzAS3JELwCHugDv5ymsnbwcU',
+          share: 100
+        }
+      ]
+    }
   },
-  imageUrl: 'y2123.com/',
   generateMetadata: true,
 };
 
@@ -69,7 +90,7 @@ async function main() {
     await setWeights(trait);
   });
 
-  const generatingImages = ora('Generating images');
+  const generatingImages = ora('Generating images\n');
   generatingImages.color = 'yellow';
   generatingImages.start();
   await generateImages();
@@ -147,7 +168,7 @@ async function setWeights(trait) {
       type: 'input',
       name: names[file] + '_weight',
       message: names[file].split('_')[1] + ' (' + trait + ') total?',
-      default: parseInt(Math.round(10000 / files.length)),
+      default: 10,
     });
   });
   const selectedWeights = await inquirer.prompt(weightPrompt);
@@ -186,17 +207,16 @@ async function generateImages() {
   await generateWeightedTraits();
 
   while (weightedTraits[0].length > 0 && noMoreMatches < 20000) {
-    console.log(weightedTraits[0].length)
-
     let picked = [];
-    order.forEach(id => {
-      let pickedImgId = pickRandom(weightedTraits[id]);
-      picked.push(pickedImgId);
-      let pickedImg = weightedTraits[id][pickedImgId];
-      console.log(pickedImg)
-      images.push(basePath + traits[id] + '/' + pickedImg);
+    order.forEach(order_id => {
+      if (randomNumber(0, 99) < traitProbability[traits[order_id]]) {
+        let pickedImgId = pickRandom(weightedTraits[order_id]);
+        picked.push(pickedImgId);
+        let pickedImg = weightedTraits[order_id][pickedImgId];
+        images.push(basePath + traits[order_id] + '/' + pickedImg);
+      }
     });
-
+    console.log(images);
     if (existCombination(images)) {
       noMoreMatches++;
       images = [];
@@ -243,15 +263,24 @@ function existCombination(contains) {
 function generateMetadataObject(id, images) {
   metaData[id] = {
     name: config.metaData.name + '#' + id,
+    symbol: config.metaData.symbol,
     description: config.metaData.description,
-    image: config.imageUrl + id,
+    seller_fee_basis_points: config.metaData.seller_fee_basis_points,
+    image: `${id}.png`,
+    animation_url: config.metaData.animation_url,
+    external_url: config.metaData.external_url,
     attributes: [],
+    collection: config.metaData.collection,
+    properties: JSON.parse(JSON.stringify(config.metaData.properties))
   };
-  images.forEach((image, i) => {
+  Object.assign(metaData[id].properties.files[0], {uri: `${id}.png`});
+
+  images.forEach(image => {
     let pathArray = image.split('/');
+    let folderToMap = pathArray[pathArray.length - 2];
     let fileToMap = pathArray[pathArray.length - 1];
     metaData[id].attributes.push({
-      trait_type: traits[order[i]].split('_')[1],
+      trait_type: folderToMap.split('_')[1],
       value: names[fileToMap].split('_')[1],
     });
   });
@@ -263,7 +292,7 @@ async function writeMetadata() {
       fs.mkdirSync(metadata_output_dir, { recursive: true });
     }
     for (var key in metaData){
-      await writeFile(metadata_output_dir + key + '.json', JSON.stringify(metaData[key]));
+      await writeFile(metadata_output_dir + key + '.json', JSON.stringify(metaData[key], null, 2));
     }
 }
 

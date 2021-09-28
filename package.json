@@ -1,16 +1,15 @@
 {
   "name": "nft-art-generator",
-  "version": "1.0.2",
-  "description": "A tool to generate generative NFT art projects.",
+  "version": "1.0.0",
+  "description": "A tool to generate generative art with Metaplex metadata.",
   "main": "index.js",
   "repository": "https://github.com/shankqr/nft-art-generator",
   "scripts": {
-    "start": "node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js"
   },
   "keywords": [],
   "author": "OXGN Labs",
-  "license": "NONE",
+  "license": "Commercial",
   "bin": {
     "nft-generate": "index.js"
   },

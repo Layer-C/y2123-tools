@@ -108,4 +108,5 @@ dist
 **/.DS_Store
 **/._.DS_Store
 package-lock.json
+config.json
 output/
