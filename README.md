@@ -12,7 +12,7 @@ A tool to generate generative art with Metaplex metadata.
 2) Open Terminal, cd into the script folder and run: 
 npm install
 
-**Run**
+**Run** 
 To run the script, simply cd into the script folder and run:
 node index.js 
 

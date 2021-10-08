@@ -27,7 +27,8 @@ let config = {
     name: 'Y2123',
     symbol: 'Y2123',
     description: 'Character ID for Y2123 Metaverse',
-    seller_fee_basis_points: 2.123,
+    seller_fee_basis_points: 500,
+    image: 'image.png',
     animation_url: '',
     external_url: 'https://y2123.com',
     collection: {
@@ -37,13 +38,14 @@ let config = {
     properties: {
       files: [
         {
+          uri: 'image.png',
           type: 'image/png'
         }
       ],
       category: 'image',
       creators: [
         {
-          address: 'D7tFhr7zkuUjqxZd8iCzbzAS3JELwCHugDv5ymsnbwcU',
+          address: 'BxFu4GX1dfWtdvrWjdAzvrHRDFkmJGmUBBwPPPNeNC2X',
           share: 100
         }
       ]
@@ -266,14 +268,13 @@ function generateMetadataObject(id, images) {
     symbol: config.metaData.symbol,
     description: config.metaData.description,
     seller_fee_basis_points: config.metaData.seller_fee_basis_points,
-    image: `${id}.png`,
+    image: config.metaData.image,
     animation_url: config.metaData.animation_url,
     external_url: config.metaData.external_url,
     attributes: [],
     collection: config.metaData.collection,
     properties: JSON.parse(JSON.stringify(config.metaData.properties))
   };
-  Object.assign(metaData[id].properties.files[0], {uri: `${id}.png`});
 
   images.forEach(image => {
     let pathArray = image.split('/');
