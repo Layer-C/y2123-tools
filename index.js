@@ -25,31 +25,8 @@ let metaData = {};
 let config = {
   metaData: {
     name: 'Y2123',
-    symbol: 'Y2123',
-    description: 'Character ID for Y2123 Metaverse',
-    seller_fee_basis_points: 500,
-    image: 'image.png',
-    animation_url: '',
-    external_url: 'https://y2123.com',
-    collection: {
-      name: 'Y2123 Metaverse',
-      family: 'Character ID'
-    },
-    properties: {
-      files: [
-        {
-          uri: 'image.png',
-          type: 'image/png'
-        }
-      ],
-      category: 'image',
-      creators: [
-        {
-          address: 'BxFu4GX1dfWtdvrWjdAzvrHRDFkmJGmUBBwPPPNeNC2X',
-          share: 100
-        }
-      ]
-    }
+    description: '[Y2123](https://www.y2123.com)',
+    image: ''
   },
   generateMetadata: true,
 };
@@ -265,15 +242,9 @@ function existCombination(contains) {
 function generateMetadataObject(id, images) {
   metaData[id] = {
     name: config.metaData.name + '#' + id,
-    symbol: config.metaData.symbol,
     description: config.metaData.description,
-    seller_fee_basis_points: config.metaData.seller_fee_basis_points,
-    image: config.metaData.image,
-    animation_url: config.metaData.animation_url,
-    external_url: config.metaData.external_url,
+    image: config.metaData.image + id + '.png',
     attributes: [],
-    collection: config.metaData.collection,
-    properties: JSON.parse(JSON.stringify(config.metaData.properties))
   };
 
   images.forEach(image => {
