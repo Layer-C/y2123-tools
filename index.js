@@ -30,6 +30,7 @@ let config = {
   },
   generateMetadata: true,
 };
+let totalFirstLayerWeights = 0;
 
 //DEFINITIONS
 const getDirectories = source =>
@@ -65,8 +66,9 @@ async function main() {
   await asyncForEach(traits, async trait => {
     await setNames(trait);
   });
-  await asyncForEach(traits, async trait => {
-    await setWeights(trait);
+  totalFirstLayerWeights = 0;
+  await asyncForEach(traits, async (trait, i) => {
+    await setWeights(trait, i);
   });
 
   const generatingImages = ora('Generating images\n');
@@ -88,12 +90,12 @@ async function main() {
   }
 
   const writingConfig = ora('Saving configuration');
-    writingConfig.color = 'yellow';
-    writingConfig.start();
-    await writeConfig();
-    await sleep(0.5);
-    writingConfig.succeed('Saved configuration successfully');
-    writingConfig.clear();
+  writingConfig.color = 'yellow';
+  writingConfig.start();
+  await writeConfig();
+  await sleep(0.5);
+  writingConfig.succeed('Saved configuration successfully');
+  writingConfig.clear();
 }
 
 //SELECT THE ORDER IN WHICH THE TRAITS SHOULD BE COMPOSITED
@@ -106,7 +108,7 @@ async function traitsOrder() {
 
 //SET PROBABILITY FOR EVERY TRAIT
 async function setTraitProbability() {
-  if (config.traitProbability && Object.keys(config.traitProbability).length === Object.keys(traits).length ) {
+  if (config.traitProbability && Object.keys(config.traitProbability).length === Object.keys(traits).length) {
     traitProbability = config.traitProbability;
     return;
   }
@@ -135,14 +137,15 @@ async function setNames(trait) {
 }
 
 //SET WEIGHTS FOR EVERY TRAIT
-async function setWeights(trait) {
-  if (config.weights && Object.keys(config.weights).length === Object.keys(names).length ) {
+async function setWeights(trait, i) {
+  if (config.weights && Object.keys(config.weights).length === Object.keys(names).length) {
     weights = config.weights;
     return;
   }
+
   const files = await getFilesForTrait(trait);
   const weightPrompt = [];
-  files.forEach((file, i) => {
+  files.forEach(file => {
     weightPrompt.push({
       type: 'input',
       name: names[file] + '_weight',
@@ -150,9 +153,31 @@ async function setWeights(trait) {
       default: 10,
     });
   });
-  const selectedWeights = await inquirer.prompt(weightPrompt);
-  files.forEach((file, i) => {
-    weights[file] = selectedWeights[names[file] + '_weight'];
+  let totalNonFirstLayerWeights = 0;
+  let selectedWeights = await inquirer.prompt(weightPrompt);
+  files.forEach(file => {
+    let w = parseInt(selectedWeights[names[file] + '_weight']);
+    if (i == 0) {
+      totalFirstLayerWeights += w;
+    } else {
+      totalNonFirstLayerWeights += w;
+    }
+  });
+
+  while (i > 0 && totalNonFirstLayerWeights != totalFirstLayerWeights) {
+    //repeat
+    console.log('Total weights for 1st layer was %d, while total weights entered for this layer was %d. Please make it match total weights of 1st layer!', totalFirstLayerWeights, totalNonFirstLayerWeights);
+    totalNonFirstLayerWeights = 0;
+    selectedWeights = await inquirer.prompt(weightPrompt);
+    files.forEach(file => {
+      let w = parseInt(selectedWeights[names[file] + '_weight']);
+      totalNonFirstLayerWeights += w;
+    });
+  }
+
+  files.forEach(file => {
+    let w = selectedWeights[names[file] + '_weight'];
+    weights[file] = w;
   });
   config.weights = weights;
 }
@@ -259,20 +284,20 @@ function generateMetadataObject(id, images) {
 }
 
 async function writeMetadata() {
-    let metadata_output_dir = outputPath
-    if (!fs.existsSync(metadata_output_dir)) {
-      fs.mkdirSync(metadata_output_dir, { recursive: true });
-    }
-    for (var key in metaData){
-      await writeFile(metadata_output_dir + key + '.json', JSON.stringify(metaData[key], null, 2));
-    }
+  let metadata_output_dir = outputPath
+  if (!fs.existsSync(metadata_output_dir)) {
+    fs.mkdirSync(metadata_output_dir, { recursive: true });
+  }
+  for (var key in metaData) {
+    await writeFile(metadata_output_dir + key + '.json', JSON.stringify(metaData[key], null, 2));
+  }
 }
 
 async function loadConfig() {
   try {
     const data = await readFile('config.json')
     config = JSON.parse(data.toString());
-  } catch (error) {}
+  } catch (error) { }
 }
 
 async function writeConfig() {
