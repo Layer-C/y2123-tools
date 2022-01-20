@@ -2,13 +2,25 @@
 const { DynamoDBClient, BatchWriteItemCommand } = require('@aws-sdk/client-dynamodb');
 const attr = require('dynamodb-data-types').AttributeValue;
 const fs = require('fs');
+const basePath = process.cwd();
 // Set the AWS Region
 const REGION = 'us-east-1';
 const dbclient = new DynamoDBClient({ region: REGION });
+const dynamoTableName = 'admin-y2123-api-citizen-metadata';
 
-
-let rawdata = fs.readFileSync('data.json');
-let json_data = JSON.parse(rawdata);
+// Create DynamoDB service object
+const run = async () => {
+  for (let i = 0; i < 10; i++) {
+    try {
+      let rawdata = fs.readFileSync(`${basePath}/metadata/${i}.json`);
+      let json_data = JSON.parse(rawdata);
+      const data = await insertToDynamoTable(json_data);
+      console.log('Success, items inserted', data);
+    } catch (err) {
+      console.log('Error', err);
+    }
+  }
+};
 
 // JSON - Insert to Dynamo Table
 const insertToDynamoTable = async function (json) {
@@ -28,7 +40,6 @@ const insertToDynamoTable = async function (json) {
 };
 
 const callDynamoDBInsert = async function (batches) {
-  const dynamoTableName = 'sample-table';
   return Promise.all(
     batches.map(async (batch) => {
       requestItems = {};
@@ -45,7 +56,7 @@ const callDynamoDBInsert = async function (batches) {
 
 // Get DynamoDB records from json
 const getDynamoDBRecords = function (data) {
-  let dynamoDBRecords = data.map((entity) => {
+  let dynamoDBRecords = [data].map((entity) => {
     entity = attr.wrap(entity);
     console.log(entity);
     let dynamoRecord = Object.assign({ PutRequest: { Item: entity } });
@@ -55,13 +66,4 @@ const getDynamoDBRecords = function (data) {
   return dynamoDBRecords;
 };
 
-// Create DynamoDB service object
-const run = async () => {
-  try {
-    const data = await insertToDynamoTable(json_data);
-    console.log('Success, items inserted', data);
-  } catch (err) {
-    console.log('Error', err);
-  }
-};
 run();
