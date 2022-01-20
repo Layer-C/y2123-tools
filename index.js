@@ -206,8 +206,10 @@ async function generateImages() {
   let images = [];
   let id = 0;
   await generateWeightedTraits();
+  //console.log(weightedTraits);
+  await writeFile('weightedTraits.json', JSON.stringify(weightedTraits, null, 2));
 
-  while (weightedTraits[0].length > 0 && noMoreMatches < 20000) {
+  while (weightedTraits[0].length > 0 && noMoreMatches < 200000) {
     let picked = [];
     order.forEach((order_id) => {
       if (randomNumber(0, 99) < traitProbability[traits[order_id]]) {
@@ -245,7 +247,7 @@ async function generateImages() {
 
 //GENERATES RANDOM NUMBER BETWEEN A MAX AND A MIN VALUE
 function randomNumber(min, max) {
-  return Math.round(Math.random() * (max - min) + min);
+  return (Math.floor(Math.pow(10, 14) * Math.random() * Math.random()) % (max - min + 1)) + min;
 }
 
 //PICKS A RANDOM INDEX INSIDE AND ARRAY RETURNS IT
