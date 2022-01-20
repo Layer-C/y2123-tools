@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 //IMPORTS
 const chalk = require('chalk');
 const boxen = require('boxen');
@@ -212,9 +210,9 @@ async function generateImages() {
   while (weightedTraits[0].length > 0 && noMoreMatches < 200000) {
     let picked = [];
     order.forEach((order_id) => {
+      let pickedImgId = pickRandom(weightedTraits[order_id]);
+      picked.push(pickedImgId); //must be pushed to mantain order for remove(weightedTraits[id], picked[i]);
       if (randomNumber(0, 99) < traitProbability[traits[order_id]]) {
-        let pickedImgId = pickRandom(weightedTraits[order_id]);
-        picked.push(pickedImgId);
         let pickedImg = weightedTraits[order_id][pickedImgId];
         if (pickedImg === undefined) {
           console.log('WARNING: ' + basePath + traits[order_id] + '/undefined');
