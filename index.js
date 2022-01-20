@@ -6,7 +6,7 @@ const boxen = require('boxen');
 const ora = require('ora');
 const inquirer = require('inquirer');
 const fs = require('fs');
-const { readFile, writeFile, readdir } = require("fs").promises;
+const { readFile, writeFile, readdir } = require('fs').promises;
 const mergeImages = require('merge-images');
 const { Image, Canvas } = require('canvas');
 const ImageDataURI = require('image-data-uri');
@@ -26,30 +26,23 @@ let config = {
   metaData: {
     name: 'Y2123',
     description: '[Y2123](https://www.y2123.com)',
-    image: ''
+    image: '',
   },
   generateMetadata: true,
 };
 let totalFirstLayerWeights = 0;
 
 //DEFINITIONS
-const getDirectories = source =>
+const getDirectories = (source) =>
   fs
     .readdirSync(source, { withFileTypes: true })
-    .filter(dirent => dirent.isDirectory())
-    .map(dirent => dirent.name);
+    .filter((dirent) => dirent.isDirectory())
+    .map((dirent) => dirent.name);
 
-const sleep = seconds => new Promise(resolve => setTimeout(resolve, seconds * 1000))
+const sleep = (seconds) => new Promise((resolve) => setTimeout(resolve, seconds * 1000));
 
 //OPENING
-console.log(
-  boxen(
-    chalk.blue(
-      'OXGN Labs - Art Generator \n'
-    ),
-    { borderColor: 'green', padding: 2 }
-  )
-);
+console.log(boxen(chalk.blue('OXGN Labs - Art Generator \n'), { borderColor: 'green', padding: 2 }));
 main();
 
 async function main() {
@@ -63,7 +56,7 @@ async function main() {
   loadingDirectories.clear();
   await traitsOrder();
   await setTraitProbability();
-  await asyncForEach(traits, async trait => {
+  await asyncForEach(traits, async (trait) => {
     await setNames(trait);
   });
   totalFirstLayerWeights = 0;
@@ -100,7 +93,7 @@ async function main() {
 
 //SELECT THE ORDER IN WHICH THE TRAITS SHOULD BE COMPOSITED
 async function traitsOrder() {
-  traits.forEach(trait => {
+  traits.forEach((trait) => {
     const globalIndex = traits.indexOf(trait);
     order.push(globalIndex);
   });
@@ -113,7 +106,7 @@ async function setTraitProbability() {
     return;
   }
   const probabilityPrompt = [];
-  traits.forEach(trait => {
+  traits.forEach((trait) => {
     probabilityPrompt.push({
       type: 'input',
       name: trait + '_probability',
@@ -122,8 +115,8 @@ async function setTraitProbability() {
     });
   });
   const selectedProbability = await inquirer.prompt(probabilityPrompt);
-  traits.forEach(trait => {
-    traitProbability[trait] = selectedProbability[trait + '_probability']
+  traits.forEach((trait) => {
+    traitProbability[trait] = selectedProbability[trait + '_probability'];
   });
   config.traitProbability = traitProbability;
 }
@@ -145,7 +138,7 @@ async function setWeights(trait, i) {
 
   const files = await getFilesForTrait(trait);
   const weightPrompt = [];
-  files.forEach(file => {
+  files.forEach((file) => {
     weightPrompt.push({
       type: 'input',
       name: names[file] + '_weight',
@@ -155,7 +148,7 @@ async function setWeights(trait, i) {
   });
   let totalNonFirstLayerWeights = 0;
   let selectedWeights = await inquirer.prompt(weightPrompt);
-  files.forEach(file => {
+  files.forEach((file) => {
     let w = parseInt(selectedWeights[names[file] + '_weight']);
     if (i == 0) {
       totalFirstLayerWeights += w;
@@ -166,16 +159,20 @@ async function setWeights(trait, i) {
 
   while (i > 0 && totalNonFirstLayerWeights != totalFirstLayerWeights) {
     //repeat
-    console.log('Total weights for 1st layer was %d, while total weights entered for this layer was %d. Please make it match total weights of 1st layer!', totalFirstLayerWeights, totalNonFirstLayerWeights);
+    console.log(
+      'Total weights for 1st layer was %d, while total weights entered for this layer was %d. Please make it match total weights of 1st layer!',
+      totalFirstLayerWeights,
+      totalNonFirstLayerWeights
+    );
     totalNonFirstLayerWeights = 0;
     selectedWeights = await inquirer.prompt(weightPrompt);
-    files.forEach(file => {
+    files.forEach((file) => {
       let w = parseInt(selectedWeights[names[file] + '_weight']);
       totalNonFirstLayerWeights += w;
     });
   }
 
-  files.forEach(file => {
+  files.forEach((file) => {
     let w = selectedWeights[names[file] + '_weight'];
     weights[file] = w;
   });
@@ -194,7 +191,7 @@ async function generateWeightedTraits() {
   for (const trait of traits) {
     const traitWeights = [];
     const files = await getFilesForTrait(trait);
-    files.forEach(file => {
+    files.forEach((file) => {
       for (let i = 0; i < weights[file]; i++) {
         traitWeights.push(file);
       }
@@ -212,19 +209,26 @@ async function generateImages() {
 
   while (weightedTraits[0].length > 0 && noMoreMatches < 20000) {
     let picked = [];
-    order.forEach(order_id => {
+    order.forEach((order_id) => {
       if (randomNumber(0, 99) < traitProbability[traits[order_id]]) {
         let pickedImgId = pickRandom(weightedTraits[order_id]);
         picked.push(pickedImgId);
         let pickedImg = weightedTraits[order_id][pickedImgId];
-        images.push(basePath + traits[order_id] + '/' + pickedImg);
+        if (pickedImg === undefined) {
+          console.log('WARNING: ' + basePath + traits[order_id] + '/undefined');
+        } else {
+          images.push(basePath + traits[order_id] + '/' + pickedImg);
+        }
       }
     });
-    console.log(images);
+
     if (existCombination(images)) {
       noMoreMatches++;
       images = [];
     } else {
+      console.log(`${id}.png`);
+      console.log(images);
+
       generateMetadataObject(id, images);
       noMoreMatches = 0;
       order.forEach((id, i) => {
@@ -255,10 +259,8 @@ function remove(array, toPick) {
 
 function existCombination(contains) {
   let exists = false;
-  seen.forEach(array => {
-    let isEqual =
-      array.length === contains.length &&
-      array.every((value, index) => value === contains[index]);
+  seen.forEach((array) => {
+    let isEqual = array.length === contains.length && array.every((value, index) => value === contains[index]);
     if (isEqual) exists = true;
   });
   return exists;
@@ -272,7 +274,7 @@ function generateMetadataObject(id, images) {
     attributes: [],
   };
 
-  images.forEach(image => {
+  images.forEach((image) => {
     let pathArray = image.split('/');
     let folderToMap = pathArray[pathArray.length - 2];
     let fileToMap = pathArray[pathArray.length - 1];
@@ -284,20 +286,21 @@ function generateMetadataObject(id, images) {
 }
 
 async function writeMetadata() {
-  let metadata_output_dir = outputPath
+  let metadata_output_dir = outputPath;
   if (!fs.existsSync(metadata_output_dir)) {
     fs.mkdirSync(metadata_output_dir, { recursive: true });
   }
   for (var key in metaData) {
     await writeFile(metadata_output_dir + key + '.json', JSON.stringify(metaData[key], null, 2));
   }
+  await writeFile(metadata_output_dir + 'batch.json', JSON.stringify(metaData, null, 2));
 }
 
 async function loadConfig() {
   try {
-    const data = await readFile('config.json')
+    const data = await readFile('config.json');
     config = JSON.parse(data.toString());
-  } catch (error) { }
+  } catch (error) {}
 }
 
 async function writeConfig() {
@@ -305,5 +308,5 @@ async function writeConfig() {
 }
 
 async function getFilesForTrait(trait) {
-  return (await readdir(basePath + '/' + trait)).filter(file => file !== '.DS_Store');
+  return (await readdir(basePath + '/' + trait)).filter((file) => file !== '.DS_Store');
 }

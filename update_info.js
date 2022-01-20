@@ -1,30 +1,26 @@
 const basePath = process.cwd();
-const fs = require("fs");
+const fs = require('fs');
 
-// General metadata for Ethereum
-const namePrefix = "Your Collection";
-const description = "Remember to replace this description";
-const baseUri = "ipfs://NewUriToReplace";
+// General metadata for Opensea
+const namePrefix = 'Y2123';
+const description = '[Y2123](https://www.y2123.com)';
+const baseUri = 'https://img-cs.y2123.io';
 
 // read json data
-let rawdata = fs.readFileSync(`${basePath}/build/json/_metadata.json`);
-let data = JSON.parse(rawdata);
+for (let i = 0; i < 500; i++) {
+  let rawdata = fs.readFileSync(`${basePath}/metadata/${i}.json`);
+  let item = JSON.parse(rawdata);
 
-data.forEach((item) => {
-  item.name = `${namePrefix} #${item.edition}`;
+  item.name = `${namePrefix}#${i}`;
   item.description = description;
-  item.image = `${baseUri}/${item.edition}.png`;
+  item.image = `${baseUri}/${i}.png`;
+  item.attributes.push({
+    trait_type: 'Type',
+    value: 'Genesis - Explorer (500 Only)',
+  });
 
-  fs.writeFileSync(
-    `${basePath}/build/json/${item.edition}.json`,
-    JSON.stringify(item, null, 2)
-  );
-});
-
-fs.writeFileSync(
-  `${basePath}/build/json/_metadata.json`,
-  JSON.stringify(data, null, 2)
-);
+  fs.writeFileSync(`${basePath}/metadata/${i}.json`, JSON.stringify(item, null, 2));
+}
 
 console.log(`Updated baseUri for images to ===> ${baseUri}`);
 console.log(`Updated description for images to ===> ${description}`);
