@@ -11,8 +11,8 @@ for (let i = 0; i < 500; i++) {
   let rawdata = fs.readFileSync(`${basePath}/metadata/${i}.json`);
   let item = JSON.parse(rawdata);
 
-  item.name = `${namePrefix}#${i}`;
-  item.description = description;
+  //item.name = `${namePrefix}#${i}`;
+  //item.description = description;
   item.image = `${baseUri}/${i}.png`;
   item.attributes.push({
     trait_type: 'Type',

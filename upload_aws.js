@@ -8,9 +8,11 @@ const REGION = 'us-east-1';
 const dbclient = new DynamoDBClient({ region: REGION });
 const dynamoTableName = 'prod-metadata';
 
+const sleep = (seconds) => new Promise((resolve) => setTimeout(resolve, seconds * 1000));
+
 // Create DynamoDB service object
 const run = async () => {
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 500; i++) {
     try {
       let rawdata = fs.readFileSync(`${basePath}/metadata/${i}.json`);
       let json_data = JSON.parse(rawdata);
@@ -19,6 +21,7 @@ const run = async () => {
     } catch (err) {
       console.log('Error', err);
     }
+    await sleep(0.5);
   }
 };
 
