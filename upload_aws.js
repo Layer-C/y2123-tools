@@ -6,7 +6,7 @@ const basePath = process.cwd();
 // Set the AWS Region
 const REGION = 'us-east-1';
 const dbclient = new DynamoDBClient({ region: REGION });
-const dynamoTableName = 'admin-y2123-api-citizen-metadata';
+const dynamoTableName = 'prod-metadata';
 
 // Create DynamoDB service object
 const run = async () => {
