@@ -19,6 +19,7 @@
     "canvas": "^2.8.0",
     "chalk": "^4.1.1",
     "dynamodb-data-types": "^4.0.0",
+    "fluent-ffmpeg": "^2.1.2",
     "image-data-uri": "^2.0.1",
     "inquirer": "^3.3.0",
     "keccak256": "^1.0.6",
