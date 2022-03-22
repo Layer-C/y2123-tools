@@ -15,13 +15,14 @@ const cleanTempGIFs = () => {
 
 // WRAPPER FOR FFMPEG (TO SUPPORT ASYNC/AWAIT)
 const ffmpegGenerate = async (params) => {
-  const { input1, input2, filter, output } = params;
+  const { inputs, filter = [], options = [], output } = params;
   console.log(params);
   await new Promise((resolve, reject) => {
-    ffmpeg()
-      .input(input1)
-      .input(input2)
-      .complexFilter(filter)
+    const command = ffmpeg();
+    inputs.forEach((input) => command.input(input));
+    command
+      .complexFilter(...filter)
+      .outputOptions(options)
       .on("progress", (progress) => {
         console.log(`[ffmpeg] ${JSON.stringify(progress)}`);
       })
@@ -46,17 +47,71 @@ const generateGIF = async (images, id) => {
   while (images.length > 0) {
     if (fs.existsSync(`${process.cwd()}/output/out${i}.gif`)) {
       await ffmpegGenerate({
-        input1: `${process.cwd()}/output/out${i}.gif`,
-        input2: images.shift(),
-        filter: "overlay",
+        inputs: [`${process.cwd()}/output/out${i}.gif`, images.shift()],
+        filter: [
+          [
+            {
+              filter: "scale",
+              options: "1170:-1:flags=lanczos",
+              inputs: "0",
+              outputs: "a",
+            },
+            {
+              filter: "scale",
+              options: "1170:-1:flags=lanczos",
+              inputs: "1",
+              outputs: "b",
+            },
+            { filter: "overlay", inputs: ["a", "b"], outputs: "merged" },
+            { filter: "split", inputs: "merged", outputs: ["s0", "s1"] },
+            {
+              filter: "palettegen",
+              inputs: "s0",
+              outputs: "p",
+            },
+            {
+              filter: "paletteuse",
+              inputs: ["s1", "p"],
+              outputs: "output",
+            },
+          ],
+          "output",
+        ],
         output: `${process.cwd()}/output/out${i + 1}.gif`,
       });
       i++;
     } else {
       await ffmpegGenerate({
-        input1: images.shift(),
-        input2: images.shift(),
-        filter: "overlay",
+        inputs: [images.shift(), images.shift()],
+        filter: [
+          [
+            {
+              filter: "scale",
+              options: "1170:-1:flags=lanczos",
+              inputs: "0",
+              outputs: "a",
+            },
+            {
+              filter: "scale",
+              options: "1170:-1:flags=lanczos",
+              inputs: "1",
+              outputs: "b",
+            },
+            { filter: "overlay", inputs: ["a", "b"], outputs: "merged" },
+            { filter: "split", inputs: "merged", outputs: ["s0", "s1"] },
+            {
+              filter: "palettegen",
+              inputs: "s0",
+              outputs: "p",
+            },
+            {
+              filter: "paletteuse",
+              inputs: ["s1", "p"],
+              outputs: "output",
+            },
+          ],
+          "output",
+        ],
         output: `${process.cwd()}/output/out0.gif`,
       });
     }
@@ -70,4 +125,44 @@ const generateGIF = async (images, id) => {
   cleanTempGIFs();
 };
 
-module.exports = { generateGIF };
+//GENERATE GIF FROM GIVEN IMAGES
+const generateGIFV3 = async (images, id) => {
+  if (!fs.existsSync("./output")) fs.mkdirSync("./output");
+
+  await ffmpegGenerate({
+    inputs: images,
+    filter: [
+      [
+        ...images.map((_, idx) => ({
+          filter: "scale",
+          options: "1170:-1:flags=lanczos",
+          inputs: `${idx}`,
+          outputs: String.fromCharCode(idx + 97),
+        })),
+        ...[...new Array(images.length - 1)].map((_, idx) => ({
+          filter: "overlay",
+          inputs:
+            idx === 0
+              ? ["a", "b"]
+              : [`m${idx - 1}`, String.fromCharCode(idx + 1 + 97)],
+          outputs: idx === images.length - 2 ? "merged" : `m${idx}`,
+        })),
+        { filter: "split", inputs: "merged", outputs: ["s0", "s1"] },
+        {
+          filter: "palettegen",
+          inputs: "s0",
+          outputs: "p",
+        },
+        {
+          filter: "paletteuse",
+          inputs: ["s1", "p"],
+          outputs: "output",
+        },
+      ],
+      "output",
+    ],
+    output: `${process.cwd()}/output/${id}.gif`,
+  });
+};
+
+module.exports = { generateGIF, generateGIFV3 };

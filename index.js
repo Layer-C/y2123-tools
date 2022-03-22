@@ -5,7 +5,7 @@ const ora = require("ora");
 const inquirer = require("inquirer");
 const fs = require("fs");
 const { readFile, writeFile, readdir } = require("fs").promises;
-const { generateGIF } = require("./gif");
+const { generateGIF, generateGIFV3 } = require("./gif");
 // const ffmpeg = require("fluent-ffmpeg");
 // const mergeImages = require("merge-images");
 // const { Image, Canvas } = require("canvas");
@@ -253,7 +253,8 @@ async function generateImages() {
         remove(weightedTraits[id], picked[i]);
       });
       seen.push(images);
-      await generateGIF(images, id);
+      // await generateGIF(images, id);
+      await generateGIFV3(images, id);
       // const command = ffmpeg();
       // images.forEach((image) => command.input(image));
       // command
