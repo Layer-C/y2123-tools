@@ -5,11 +5,12 @@ const ora = require("ora");
 const inquirer = require("inquirer");
 const fs = require("fs");
 const { readFile, writeFile, readdir } = require("fs").promises;
-const { generateGIF, generateGIFV3 } = require("./gif");
-// const ffmpeg = require("fluent-ffmpeg");
-// const mergeImages = require("merge-images");
-// const { Image, Canvas } = require("canvas");
-// const ImageDataURI = require("image-data-uri");
+const {
+  generatePNG,
+  generateGIF,
+  generateGIFV3,
+  generateGIFV4,
+} = require("./gif");
 
 //SETTINGS
 let basePath = process.cwd() + "/images/";
@@ -253,22 +254,14 @@ async function generateImages() {
         remove(weightedTraits[id], picked[i]);
       });
       seen.push(images);
-      // await generateGIF(images, id);
-      await generateGIFV3(images, id);
-      // const command = ffmpeg();
-      // images.forEach((image) => command.input(image));
-      // command
-      //   .videoFilters(
-      //     "fps=10",
-      //     `scale=${outputWidth}:-1:flags=lanczos`,
-      //     "split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse"
-      //   )
-      //   .outputOptions("-loop 0")
-      //   .format("gif")
-      //   .duration(3)
-      //   .mergeToFile(outputPath + `${id}.gif`, "temp");
-      // const b64 = await mergeImages(images, { Canvas: Canvas, Image: Image });
-      // await ImageDataURI.outputFile(b64, outputPath + `${id}.png`);
+
+      // if has gif
+      if (images.filter((image) => image.includes(".gif")).length > 0)
+        // await generateGIF(images, id);
+        // await generateGIFV3(images, id);
+        await generateGIFV4(images, id);
+      else await generatePNG(images, id, true);
+
       images = [];
       id++;
     }

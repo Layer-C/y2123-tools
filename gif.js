@@ -1,11 +1,17 @@
 const fs = require("fs");
 const ffmpeg = require("fluent-ffmpeg");
+const util = require("util");
+const exec = util.promisify(require("child_process").exec);
+const mergeImages = require("merge-images");
+const { Image, Canvas } = require("canvas");
+const ImageDataURI = require("image-data-uri");
+
+const outputPath = process.cwd() + "/output/";
+const outputWidth = 585;
 
 // CLEAN TEMPORARY GENERATED GIF
-const cleanTempGIFs = () => {
-  const files = fs
-    .readdirSync(process.cwd() + "/output/")
-    .filter((file) => file.includes("out"));
+const cleanFiles = (directory, matcher) => {
+  const files = fs.readdirSync(directory).filter(matcher);
   files.forEach((file) =>
     fs.unlink(`${process.cwd()}/output/${file}`, (err) => {
       if (err) console.error(err);
@@ -38,6 +44,46 @@ const ffmpegGenerate = async (params) => {
   });
 };
 
+//GENERATE PNG FROM GIVEN IMAGES
+const generatePNG = async (images, id, resize = false) => {
+  // create output folder if not exists
+  if (!fs.existsSync("./output")) fs.mkdirSync("./output");
+
+  let b64;
+
+  // if resize is specified
+  if (resize) {
+    const temp = [];
+    // resize all layers
+    for (let i = 0; i < images.length; i++) {
+      const output = `${process.cwd()}/output/out${i + 1}.png`;
+      await ffmpegGenerate({
+        inputs: [images[i]],
+        filter: [
+          {
+            filter: "scale",
+            options: `${outputWidth}:-1:flags=lanczos`,
+            inputs: "0",
+            outputs: "output",
+          },
+          "output",
+        ],
+        output,
+      });
+      // push them onto a temporary array
+      temp.push(output);
+    }
+    b64 = await mergeImages(temp, { Canvas: Canvas, Image: Image });
+  } else {
+    b64 = await mergeImages(images, { Canvas: Canvas, Image: Image });
+  }
+
+  // write to an output image
+  await ImageDataURI.outputFile(b64, outputPath + `${id}.png`);
+  // clean temp files
+  cleanFiles(outputPath, (file) => file.includes("out"));
+};
+
 //GENERATE GIF FROM GIVEN IMAGES
 const generateGIF = async (images, id) => {
   let i = 0;
@@ -52,13 +98,13 @@ const generateGIF = async (images, id) => {
           [
             {
               filter: "scale",
-              options: "1170:-1:flags=lanczos",
+              options: `${outputWidth}:-1:flags=lanczos`,
               inputs: "0",
               outputs: "a",
             },
             {
               filter: "scale",
-              options: "1170:-1:flags=lanczos",
+              options: `${outputWidth}:-1:flags=lanczos`,
               inputs: "1",
               outputs: "b",
             },
@@ -87,13 +133,13 @@ const generateGIF = async (images, id) => {
           [
             {
               filter: "scale",
-              options: "1170:-1:flags=lanczos",
+              options: `${outputWidth}:-1:flags=lanczos`,
               inputs: "0",
               outputs: "a",
             },
             {
               filter: "scale",
-              options: "1170:-1:flags=lanczos",
+              options: `${outputWidth}:-1:flags=lanczos`,
               inputs: "1",
               outputs: "b",
             },
@@ -122,7 +168,7 @@ const generateGIF = async (images, id) => {
     `${process.cwd()}/output/${id}.gif`
   );
 
-  cleanTempGIFs();
+  cleanFiles(outputPath, (file) => file.includes("out"));
 };
 
 //GENERATE GIF FROM GIVEN IMAGES
@@ -135,7 +181,7 @@ const generateGIFV3 = async (images, id) => {
       [
         ...images.map((_, idx) => ({
           filter: "scale",
-          options: "1170:-1:flags=lanczos",
+          options: `${outputWidth}:-1:flags=lanczos`,
           inputs: `${idx}`,
           outputs: String.fromCharCode(idx + 97),
         })),
@@ -145,7 +191,7 @@ const generateGIFV3 = async (images, id) => {
             idx === 0
               ? ["a", "b"]
               : [`m${idx - 1}`, String.fromCharCode(idx + 1 + 97)],
-          outputs: idx === images.length - 2 ? "merged" : `m${idx}`,
+          outputs: idx === images.length - 2 ? "output" : `m${idx}`,
         })),
         { filter: "split", inputs: "merged", outputs: ["s0", "s1"] },
         {
@@ -165,4 +211,56 @@ const generateGIFV3 = async (images, id) => {
   });
 };
 
-module.exports = { generateGIF, generateGIFV3 };
+//GENERATE GIF FROM GIVEN IMAGES
+const generateGIFV4 = async (images, id) => {
+  if (!fs.existsSync("./output")) fs.mkdirSync("./output");
+
+  // merge and export to PNG frames
+  await ffmpegGenerate({
+    inputs: images,
+    filter: [
+      [
+        ...images.map((_, idx) => ({
+          filter: "scale",
+          options: `${outputWidth}:-1:flags=lanczos`,
+          inputs: `${idx}`,
+          outputs: String.fromCharCode(idx + 97),
+        })),
+        ...[...new Array(images.length - 1)].map((_, idx) => ({
+          filter: "overlay",
+          inputs:
+            idx === 0
+              ? ["a", "b"]
+              : [`m${idx - 1}`, String.fromCharCode(idx + 1 + 97)],
+          outputs: idx === images.length - 2 ? "merged" : `m${idx}`,
+        })),
+        // { filter: "split", inputs: "merged", outputs: ["s0", "s1"] },
+        // {
+        //   filter: "palettegen",
+        //   inputs: "s0",
+        //   outputs: "p",
+        // },
+        // {
+        //   filter: "paletteuse",
+        //   inputs: ["s1", "p"],
+        //   outputs: "output",
+        // },
+      ],
+      // "output",
+      "merged",
+    ],
+    output: `${process.cwd()}/output/${id}_%05d.png`,
+  });
+
+  // combine PNG frames to gif
+  const { stdout, stderr } = await exec(
+    `gifski -Q 100 -W ${outputWidth} -o ./output/${id}.gif ./output/${id}*.png`
+  );
+  if (stderr) console.log(`[error-gifski] ${stderr}`);
+  console.log(`[gifski] ${stdout}`);
+
+  // clean PNG frames
+  cleanFiles(outputPath, (file) => file.match(/^.*_\d{5}.png$/g));
+};
+
+module.exports = { generatePNG, generateGIF, generateGIFV3, generateGIFV4 };
