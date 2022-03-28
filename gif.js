@@ -21,11 +21,14 @@ const cleanFiles = (directory, matcher) => {
 
 // WRAPPER FOR FFMPEG (TO SUPPORT ASYNC/AWAIT)
 const ffmpegGenerate = async (params) => {
-  const { inputs, filter = [], options = [], output } = params;
+  const { inputs, filter = [], options = [], output, fps } = params;
   console.log(params);
   await new Promise((resolve, reject) => {
     const command = ffmpeg();
     inputs.forEach((input) => command.input(input));
+
+    if (typeof fps === "number") command.fps(fps).inputFPS(fps);
+
     command
       .complexFilter(...filter)
       .outputOptions(options)
@@ -250,6 +253,7 @@ const generateGIFV4 = async (images, id) => {
       "merged",
     ],
     output: `${process.cwd()}/output/${id}_%05d.png`,
+    fps: 24,
   });
 
   // combine PNG frames to gif
