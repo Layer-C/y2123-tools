@@ -1,5 +1,10 @@
-# OXGN Labs - ART GENERATOR
-A tool to generate generative art with Metaplex metadata. 
+# Y2123.com Toolbox
+
+Layer C (layerc.io)
+
+Created by shanq.eth
+
+Tools to generate generative art and other generic tools for NFTs
 
 **Features:**
 * Probability for each traits
